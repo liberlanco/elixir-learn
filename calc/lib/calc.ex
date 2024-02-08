@@ -4,15 +4,30 @@ defmodule Calc do
   """
 
   @doc """
-  Hello world.
+  Calculate given expression.
+
+  Supported binary operations: - + / *
 
   ## Examples
 
-      iex> Calc.hello()
-      :world
+      iex> Calc.calculate("2 + 2")
+      4
 
+      iex> Calc.calculate("2+2")
+      4
+
+      iex> Calc.calculate("2*/4")
+      Error: unexpected operation /
   """
-  def hello do
-    :world
+  def calculate(exp) do
+    with
+    {:ok, tree} <- Calc.Parser.parse(exp)
+
+    {:ok, res} <-
+      Calc.Logic.eval tree do
+        IO.puts(res)
+      else
+        {:error, reason} -> IO.puts("Error:", reason)
+      end
   end
 end

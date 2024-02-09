@@ -21,7 +21,9 @@ defmodule Calc.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:recon_ex, github: "liberlanco/recon_ex"}
+      {:recon_ex, github: "liberlanco/recon_ex"},
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 end

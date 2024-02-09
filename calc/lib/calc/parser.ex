@@ -1,8 +1,17 @@
 defmodule Calc.Parser do
-  defguard is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub]
+  @moduledoc """
+  Module with functions to parse given expression into evaluation tree
+  """
+
+  defguardp is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub]
 
   @doc """
-    Parses givem string with expression and returns operation tree
+  Parses given string with expression and returns operation tree
+
+  ### Examples
+
+      iex>  Calc.Parser.parse("2 * 3 + 4")
+      {:ok, {:node, {:node, {:num, 2.0}, :mul, {:num, 3.0}}, :add, {:num, 4.0}}}
   """
   def parse(exp) do
     with {:ok, tokens} <- tokenize(exp),
@@ -16,14 +25,14 @@ defmodule Calc.Parser do
 
   ### Examples
 
-     iex> Calc.Parser.tokenize("14 + 21 - 13 + 43 * -55")
-     {:ok, [14.0, :add, 21.0, :sub, 13.0, :add, 43.0, :mul, :sub, 55.0]}
+      iex> Calc.Parser.tokenize("14 + 21 - 13 + 43 * 55")
+      {:ok, [14.0, :add, 21.0, :sub, 13.0, :add, 43.0, :mul, 55.0]}
 
-     iex> Calc.Parser.tokenize("asdf + 43")
-     {:error, "Failed to parse token asdf: not a number"}
+      iex> Calc.Parser.tokenize("asdf + 43")
+      {:error, "failed to parse token asdf: not a number"}
 
-     iex> Calc.Parser.tokenize("12a + 43")
-     {:error, "Failed to parse token 12a: extra chars"}
+      iex> Calc.Parser.tokenize("12a + 43")
+      {:error, "failed to parse token 12a: extra chars"}
   """
   def tokenize(exp) do
     exp
@@ -51,12 +60,12 @@ defmodule Calc.Parser do
   # Second step of tokenize workflow.
   # It reverses output of split, and at the same time
   # Reverses each token inside and converts it to float
-  def reverse_and_convert([], acc), do: {:ok, acc}
+  defp reverse_and_convert([], acc), do: {:ok, acc}
 
-  def reverse_and_convert([op | tail], acc) when is_op(op),
+  defp reverse_and_convert([op | tail], acc) when is_op(op),
     do: reverse_and_convert(tail, [op | acc])
 
-  def reverse_and_convert([list | tail], acc) when is_list(list) do
+  defp reverse_and_convert([list | tail], acc) when is_list(list) do
     token =
       list
       |> Enum.reverse()

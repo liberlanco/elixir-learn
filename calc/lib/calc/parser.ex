@@ -1,14 +1,15 @@
 defmodule Calc.Parser do
+  defguard is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub]
+
   @doc """
     Parses givem string with expression and returns operation tree
   """
   def parse(exp) do
-    exp
-    |> tokenize
-    |> build_tree
+    with {:ok, tokens} <- tokenize(exp),
+         {:ok, tree} <- build_tree(tokens, []) do
+      {:ok, tree}
+    end
   end
-
-  defguard is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub]
 
   @doc """
   Tokenize given string, convert all numbers to floats
@@ -28,9 +29,12 @@ defmodule Calc.Parser do
     exp
     |> to_charlist
     |> split([])
-    |> numify([])
+    |> reverse_and_convert([])
   end
 
+  # Splits given iolist to tokens
+  # Returns reversed list of tokens, and each "string" in that list
+  # is also reversed. Need to pass thru reverse_and_convert fo final result
   defp split([], acc), do: acc
   defp split([?\s | tail], acc), do: split(tail, acc)
   defp split([?+ | tail], acc), do: split(tail, [:add | acc])
@@ -44,26 +48,76 @@ defmodule Calc.Parser do
 
   defp split([ch | tail], acc), do: split(tail, [[ch] | acc])
 
-  defp numify([], acc), do: {:ok, acc}
-  defp numify([op | tail], acc) when is_op(op), do: numify(tail, [op | acc])
+  # Second step of tokenize workflow.
+  # It reverses output of split, and at the same time
+  # Reverses each token inside and converts it to float
+  def reverse_and_convert([], acc), do: {:ok, acc}
 
-  defp numify([list | tail], acc) when is_list(list) do
+  def reverse_and_convert([op | tail], acc) when is_op(op),
+    do: reverse_and_convert(tail, [op | acc])
+
+  def reverse_and_convert([list | tail], acc) when is_list(list) do
     token =
       list
       |> Enum.reverse()
       |> to_string()
 
     case Float.parse(token) do
-      {n, ""} -> numify(tail, [n | acc])
-      {_, _} -> {:error, "Failed to parse token #{token}: extra chars"}
-      _ -> {:error, "Failed to parse token #{token}: not a number"}
+      {n, ""} -> reverse_and_convert(tail, [n | acc])
+      {_, _} -> {:error, "failed to parse token #{token}: extra chars"}
+      _ -> {:error, "failed to parse token #{token}: not a number"}
     end
   end
 
-  @doc """
-  Constructs a operation tree from list with tokens
-  """
-  def build_tree(tokens), do: build_tree(tokens, [])
+  defguardp is_node(tuple) when elem(tuple, 0) == :node
+  defguardp is_op_node(tuple) when elem(tuple, 0) == :op
+  defguardp is_num_node(tuple) when elem(tuple, 0) == :num
+  defguardp is_arg_node(x) when is_node(x) or is_num_node(x)
 
-  defp build_tree([n], []), do: {n}
+  # Input: tokenized string
+  # Output:  Tree of nodes
+  # Example:
+  #    Calc.Parser.build_tree([123.0, :add, 1.2, :sub, 10.0], [])
+  # Output:
+  #  {:ok,
+  #    {:node,
+  #      {:node,
+  #        {:num, 123.0},
+  #        :add,
+  #        {:num, 1.2}
+  #      },
+  #      :sub,
+  #      {:num, 10.0}
+  #    }
+  #  }
+  #
+  defp build_tree([], [arg]) when is_arg_node(arg), do: {:ok, arg}
+  defp build_tree([], []), do: {:ok, {:num, 0.0}}
+  defp build_tree([], _), do: {:error, "not complete expression"}
+
+  defp build_tree([head | tail], stack) do
+    node = to_node(head)
+
+    with {:ok, new_stack} <- push(node, stack) do
+      build_tree(tail, new_stack)
+    end
+  end
+
+  defp to_node(num) when is_float(num), do: {:num, num}
+  defp to_node(op) when is_op(op), do: {:op, op}
+
+  defp push(num, []) when is_num_node(num), do: {:ok, [num]}
+  defp push(op, []) when is_op_node(op), do: {:error, "Unexpected operand #{op}"}
+
+  defp push(op, stack) when is_op_node(op), do: {:ok, [op | stack]}
+
+  defp push(right, [{:op, op}, left | tail])
+       when is_arg_node(right) and is_arg_node(left) do
+    {:ok, [{:node, left, op, right} | tail]}
+  end
+
+  defp push(right, [{:op, :sub} | tail])
+       when is_num_node(right) do
+    {:ok, [{:node, {:num, 0}, :sub, right} | tail]}
+  end
 end

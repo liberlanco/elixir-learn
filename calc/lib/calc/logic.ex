@@ -6,7 +6,7 @@ defmodule Calc.Logic do
   @doc """
   Calculates evaluation tree and returns the result
 
-  ### Examoples
+  ### Examples
 
       iex(2)> Calc.Logic.eval({:node, {:node, {:num, 2.0}, :mul, {:num, 3.0}}, :add, {:num, 4.0}})
       {:ok, 10.0}

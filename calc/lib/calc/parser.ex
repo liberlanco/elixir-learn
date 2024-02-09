@@ -125,8 +125,8 @@ defmodule Calc.Parser do
     {:ok, [{:node, left, op, right} | tail]}
   end
 
-  defp push(right, [{:op, :sub} | tail])
-       when is_num_node(right) do
-    {:ok, [{:node, {:num, 0}, :sub, right} | tail]}
+  defp push(token, _) do
+    str = token |> Tuple.to_list() |> Enum.join(", ")
+    {:error, "Unexpected token { #{str} }"}
   end
 end

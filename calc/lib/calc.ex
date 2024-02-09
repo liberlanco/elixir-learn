@@ -6,7 +6,7 @@ defmodule Calc do
   of wrong input, no support for brackets and other complex things like negative numbers in the
   middle of input
 
-  Use `eval` in code as API. And use `calculate` as
+  Use `eval/1` in code as API. And use `calculate/1` as
   human interfaces with IO.puts
   """
 

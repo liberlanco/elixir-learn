@@ -3,7 +3,7 @@ defmodule Calc.Parser do
   Module with functions to parse given expression into evaluation tree
   """
 
-  defguardp is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub]
+  defguardp is_op(op) when is_atom(op) and op in [:add, :mul, :div, :sub, :lparen, :rparen]
 
   @doc """
   Parses given string with expression and returns operation tree
@@ -11,11 +11,15 @@ defmodule Calc.Parser do
   ### Examples
 
       iex>  Calc.Parser.parse("2 * 3 + 4")
-      {:ok, {:node, {:node, {:num, 2.0}, :mul, {:num, 3.0}}, :add, {:num, 4.0}}}
+      {:ok, {:add, {:mul, {:num, 2.0}, {:num, 3.0}}, {:num, 4.0}}}
+
+      iex(3)> Calc.Parser.parse("-2 + 3 / 4")
+      {:ok, {:add, {:neg, {:num, 2.0}}, {:div, {:num, 3.0}, {:num, 4.0}}}}
+
   """
   def parse(exp) do
     with {:ok, tokens} <- tokenize(exp),
-         {:ok, tree} <- build_tree(tokens, []) do
+         {:ok, tree} <- rd_parser(tokens) do
       {:ok, tree}
     end
   end
@@ -50,6 +54,8 @@ defmodule Calc.Parser do
   defp split([?- | tail], acc), do: split(tail, [:sub | acc])
   defp split([?/ | tail], acc), do: split(tail, [:div | acc])
   defp split([?* | tail], acc), do: split(tail, [:mul | acc])
+  defp split([?\( | tail], acc), do: split(tail, [:lparen | acc])
+  defp split([?\) | tail], acc), do: split(tail, [:rparen | acc])
 
   defp split([ch | tail], [prev | acc]) when is_list(prev) do
     split(tail, [[ch | prev] | acc])
@@ -78,55 +84,79 @@ defmodule Calc.Parser do
     end
   end
 
-  defguardp is_node(tuple) when elem(tuple, 0) == :node
-  defguardp is_op_node(tuple) when elem(tuple, 0) == :op
-  defguardp is_num_node(tuple) when elem(tuple, 0) == :num
-  defguardp is_arg_node(x) when is_node(x) or is_num_node(x)
-
-  # Input: tokenized string
-  # Output:  Tree of nodes
-  # Example:
-  #    Calc.Parser.build_tree([123.0, :add, 1.2, :sub, 10.0], [])
-  # Output:
-  #  {:ok,
-  #    {:node,
-  #      {:node,
-  #        {:num, 123.0},
-  #        :add,
-  #        {:num, 1.2}
-  #      },
-  #      :sub,
-  #      {:num, 10.0}
-  #    }
-  #  }
+  # Recursive Descending Parser as here: https://www.youtube.com/watch?v=SToUyjAsaFk
+  # but in functional language
   #
-  defp build_tree([], [arg]) when is_arg_node(arg), do: {:ok, arg}
-  defp build_tree([], []), do: {:ok, {:num, 0.0}}
-  defp build_tree([], _), do: {:error, "not complete expression"}
+  # Main rules:
+  #  E -> T {+- T} | T
+  #  T -> F {*/ F} | F
+  #  F -> number | ( E ) | -F
 
-  defp build_tree([head | tail], stack) do
-    node = to_node(head)
-
-    with {:ok, new_stack} <- push(node, stack) do
-      build_tree(tail, new_stack)
+  def rd_parser(tokens) do
+    case exp(tokens) do
+      {:ok, tree, []} -> {:ok, tree}
+      {:ok, _, tail} -> {:error, "unexpected token: #{Enum.at(tail, 0)}"}
+      err -> err
     end
   end
 
-  defp to_node(num) when is_float(num), do: {:num, num}
-  defp to_node(op) when is_op(op), do: {:op, op}
+  defp factor([n | tail]) when is_number(n), do: {:ok, {:num, n}, tail}
 
-  defp push(num, []) when is_num_node(num), do: {:ok, [num]}
-  defp push(op, []) when is_op_node(op), do: {:error, "Unexpected operand #{op}"}
-
-  defp push(op, stack) when is_op_node(op), do: {:ok, [op | stack]}
-
-  defp push(right, [{:op, op}, left | tail])
-       when is_arg_node(right) and is_arg_node(left) do
-    {:ok, [{:node, left, op, right} | tail]}
+  defp factor([:sub | tail]) do
+    case factor(tail) do
+      {:ok, a, new_tail} -> {:ok, {:neg, a}, new_tail}
+      err -> err
+    end
   end
 
-  defp push(token, _) do
-    str = token |> Tuple.to_list() |> Enum.join(", ")
-    {:error, "Unexpected token { #{str} }"}
+  defp factor([:lparen | tail]) do
+    case exp(tail) do
+      {:ok, res, [:rparen | new_tail]} -> {:ok, res, new_tail}
+      {:ok, _, _} -> {:error, "missing closing bracket"}
+      err -> err
+    end
   end
+
+  defp factor([a | _]), do: {:error, "unexpected token: #{a}"}
+  defp factor([]), do: {:error, "missing argument"}
+
+  defp term(tokens) do
+    case factor(tokens) do
+      {:ok, a, tail} -> term(a, tail)
+      err -> err
+    end
+  end
+
+  defp term(a, [op | tail]) when op in [:mul, :div] do
+    case factor(tail) do
+      {:ok, b, new_tail} ->
+        new_a = {op, a, b}
+        term(new_a, new_tail)
+
+      err ->
+        err
+    end
+  end
+
+  defp term(a, tokens), do: {:ok, a, tokens}
+
+  defp exp(tokens) do
+    case term(tokens) do
+      {:ok, a, tail} -> exp(a, tail)
+      err -> err
+    end
+  end
+
+  defp exp(a, [op | tail]) when op in [:add, :sub] do
+    case term(tail) do
+      {:ok, b, new_tail} ->
+        new_a = {op, a, b}
+        exp(new_a, new_tail)
+
+      err ->
+        err
+    end
+  end
+
+  defp exp(a, tokens), do: {:ok, a, tokens}
 end

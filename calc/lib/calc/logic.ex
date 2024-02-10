@@ -8,16 +8,17 @@ defmodule Calc.Logic do
 
   ## Examples
 
-      iex(2)> Calc.Logic.eval({:node, {:node, {:num, 2.0}, :mul, {:num, 3.0}}, :add, {:num, 4.0}})
-      {:ok, 10.0}
+      iex(5)> Calc.Logic.eval({:add, {:neg, {:num, 2.0}}, {:div, {:num, 3.0}, {:num, 4.0}}})
+      {:ok, -1.25}
   """
   def eval(tree) do
     {:ok, collect_result(tree)}
   end
 
   defp collect_result({:num, n}), do: n
-  defp collect_result({:node, a, :add, b}), do: collect_result(a) + collect_result(b)
-  defp collect_result({:node, a, :sub, b}), do: collect_result(a) - collect_result(b)
-  defp collect_result({:node, a, :mul, b}), do: collect_result(a) * collect_result(b)
-  defp collect_result({:node, a, :div, b}), do: collect_result(a) / collect_result(b)
+  defp collect_result({:add, a, b}), do: collect_result(a) + collect_result(b)
+  defp collect_result({:sub, a, b}), do: collect_result(a) - collect_result(b)
+  defp collect_result({:mul, a, b}), do: collect_result(a) * collect_result(b)
+  defp collect_result({:div, a, b}), do: collect_result(a) / collect_result(b)
+  defp collect_result({:neg, a}), do: 0 - collect_result(a)
 end

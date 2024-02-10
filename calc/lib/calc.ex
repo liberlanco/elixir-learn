@@ -20,10 +20,10 @@ defmodule Calc do
   ## Examples
 
       iex> Calc.eval("2 + 2")
-      {:ok, 4.0}
+      {:ok, 4}
 
       iex> Calc.eval("2+2")
-      {:ok, 4.0}
+      {:ok, 4}
 
       iex> Calc.eval("2 + 2 * 2e10")
       {:ok, 40000000002.0}

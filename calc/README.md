@@ -1,6 +1,29 @@
 # Calc
 
-**TODO: Add description**
+Calculator labrary. Parser and evaluates simple mathematical expression.
+
+Supported binary operations: -, +, /, *,
+Supprted unuary operatiuon: - (negative)
+Supported brackets: (, )
+
+## Examples
+
+```elixir
+iex> Calc.eval("2 + 2")
+{:ok, 4.0}
+
+iex> Calc.eval("2+2")
+{:ok, 4.0}
+
+iex> Calc.eval("2 + 2 * 2e10")
+{:ok, 40000000002.0}
+
+iex(9)> Calc.eval("2 +")
+{:error, "missing argument"}
+
+iex> Calc.eval("2 / 0")
+** (ArithmeticError) bad argument in arithmetic expression
+```
 
 ## Installation
 

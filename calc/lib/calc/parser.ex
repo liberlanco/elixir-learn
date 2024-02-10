@@ -11,10 +11,10 @@ defmodule Calc.Parser do
   ### Examples
 
       iex>  Calc.Parser.parse("2 * 3 + 4")
-      {:ok, {:add, {:mul, {:num, 2.0}, {:num, 3.0}}, {:num, 4.0}}}
+      {:ok, {:add, {:mul, {:num, 2}, {:num, 3}}, {:num, 4}}}
 
       iex(3)> Calc.Parser.parse("-2 + 3 / 4")
-      {:ok, {:add, {:neg, {:num, 2.0}}, {:div, {:num, 3.0}, {:num, 4.0}}}}
+      {:ok, {:add, {:neg, {:num, 2}}, {:div, {:num, 3}, {:num, 4}}}}
 
   """
   def parse(exp) do
@@ -29,8 +29,8 @@ defmodule Calc.Parser do
 
   ### Examples
 
-      iex> Calc.Parser.tokenize("14 + 21 - 13 + 43 * 55")
-      {:ok, [14.0, :add, 21.0, :sub, 13.0, :add, 43.0, :mul, 55.0]}
+      iex> Calc.Parser.tokenize("14 + 21 - 13 + 43 * 55.5")
+      {:ok, [14, :add, 21, :sub, 13, :add, 43, :mul, 55.5]}
 
       iex> Calc.Parser.tokenize("asdf + 43")
       {:error, "failed to parse token asdf: not a number"}
@@ -40,7 +40,7 @@ defmodule Calc.Parser do
   """
   def tokenize(exp) do
     exp
-    |> to_charlist
+    |> to_charlist()
     |> split([])
     |> reverse_and_convert([])
   end
@@ -54,8 +54,8 @@ defmodule Calc.Parser do
   defp split([?- | tail], acc), do: split(tail, [:sub | acc])
   defp split([?/ | tail], acc), do: split(tail, [:div | acc])
   defp split([?* | tail], acc), do: split(tail, [:mul | acc])
-  defp split([?\( | tail], acc), do: split(tail, [:lparen | acc])
-  defp split([?\) | tail], acc), do: split(tail, [:rparen | acc])
+  defp split([?( | tail], acc), do: split(tail, [:lparen | acc])
+  defp split([?) | tail], acc), do: split(tail, [:rparen | acc])
 
   defp split([ch | tail], [prev | acc]) when is_list(prev) do
     split(tail, [[ch | prev] | acc])
@@ -77,10 +77,17 @@ defmodule Calc.Parser do
       |> Enum.reverse()
       |> to_string()
 
-    case Float.parse(token) do
+    case parse_number(token) do
       {n, ""} -> reverse_and_convert(tail, [n | acc])
       {_, _} -> {:error, "failed to parse token #{token}: extra chars"}
       _ -> {:error, "failed to parse token #{token}: not a number"}
+    end
+  end
+
+  defp parse_number(token) do
+    case Integer.parse(token) do
+      {n, ""} -> {n, ""}
+      _ -> Float.parse(token)
     end
   end
 

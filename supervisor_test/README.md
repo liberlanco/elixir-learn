@@ -7,7 +7,6 @@ Each process is called with number 0-999
 
 `Worker` - responds to DataEmitter. Each number NUM is processed by following logic:
 - NUM in [100, 200, ...] - introduce corrupted state (an_error - random number 0-99).
-- NUM == 999 - introduces currupted state in `Base` process.
 - NUM rem an_error == 0 - crash
 - work with `Base`, :ok
 

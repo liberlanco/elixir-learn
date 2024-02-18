@@ -26,20 +26,19 @@ defmodule DataEmitter do
   @impl true
   def init(_) do
     :timer.send_interval(@interval, :emit)
-    {:ok, %{list: PidsList.new(), refs: %{}}}
+    {:ok, %{list: PidsList.new()}}
   end
 
   @impl true
   def handle_cast({:register, pid}, state) do
     Logger.info("Register #{inspect(pid)}")
-
+    Process.monitor(pid)
     {:noreply, %{state | list: PidsList.add(state.list, pid)}}
   end
 
   @impl true
   def handle_cast({:unregister, pid}, state) do
     Logger.info("Unregister #{inspect(pid)}")
-
     {:noreply, %{state | list: PidsList.remove(state.list, pid)}}
   end
 
@@ -47,10 +46,10 @@ defmodule DataEmitter do
   def handle_info(:emit, state) do
     case PidsList.random_pid(state.list) do
       {:ok, pid} ->
-        {:ok, task_pid} = Task.start(fn -> emit(pid) end)
-        ref = Process.monitor(task_pid)
-
-        {:noreply, %{state | refs: Map.put(state.refs, ref, pid)}}
+        # Not start_link because don't want to die, if task
+        # failed to do Worker.call for any reason
+        Task.start(fn -> emit(pid) end)
+        {:noreply, state}
 
       {:error, :empty_list} ->
         {:noreply, state}
@@ -58,33 +57,14 @@ defmodule DataEmitter do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
-    {:noreply, %{state | refs: Map.delete(state.refs, ref)}}
-  end
-
-  @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, state) do
-    pid = Map.get(state.refs, ref)
-    Logger.info("Forget #{inspect(pid)}. Call to this worker died.")
-
-    new_state = %{
-      state
-      | refs: Map.delete(state.refs, ref),
-        list: PidsList.remove(state.list, pid)
-    }
-
-    {:noreply, new_state}
-  end
-
-  @impl true
-  def handle_info(info, state) do
-    IO.puts(info)
-    {:noreply, state}
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+    Logger.info("Forget #{inspect(pid)}. Worker died.")
+    {:noreply, %{state | list: PidsList.remove(state.list, pid)}}
   end
 
   defp emit(pid) do
     num = :rand.uniform(999)
-    IO.puts("send #{num} to #{inspect(pid)} from #{inspect(self())}")
+    # Logger.debug("send #{num} to #{inspect(pid)} from #{inspect(self())}")
     Worker.call(pid, num)
   end
 end

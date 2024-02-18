@@ -28,6 +28,7 @@ defmodule PidsList do
           pids: %{pid => boolean}
         }
 
+  @spec new() :: PidsList.t()
   @doc """
   Create new pids list
   """
@@ -35,6 +36,7 @@ defmodule PidsList do
     %__MODULE__{}
   end
 
+  @spec add(PidsList.t(), pid()) :: PidsList.t()
   @doc """
   Add new pid to pid list, it should be silent, if pid already exists there
   """
@@ -42,6 +44,7 @@ defmodule PidsList do
     %__MODULE__{list | pids: Map.put(list.pids, pid, true)}
   end
 
+  @spec remove(PidsList.t(), pid()) :: PidsList.t()
   @doc """
   Remove pid from pid list. Do nothing if pid is missing
   """
@@ -49,13 +52,9 @@ defmodule PidsList do
     %__MODULE__{list | pids: Map.delete(list.pids, pid)}
   end
 
+  @spec random_pid(PidsList.t()) :: {:error, :empty_list} | {:ok, pid()}
   @doc """
   Return random pid from the list
-
-  ### Example
-
-
-
   """
   def random_pid(%__MODULE__{pids: pids}) when map_size(pids) == 0, do: {:error, :empty_list}
 

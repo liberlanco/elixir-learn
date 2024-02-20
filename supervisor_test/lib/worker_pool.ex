@@ -1,6 +1,9 @@
 defmodule WorkerPool do
   use Supervisor
 
+  @max_restarts 3
+  @max_seconds 5
+
   def start_link(opts) do
     IO.puts(inspect(opts))
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
@@ -8,12 +11,16 @@ defmodule WorkerPool do
 
   @impl true
   def init(num) do
-    base_child_spec = Worker.child_spec({})
-
     children =
       1..num
-      |> Enum.map(fn i -> %{base_child_spec | id: String.to_atom("worker_#{i}")} end)
+      |> Enum.map(fn i ->
+        Supervisor.child_spec({Worker, {}}, id: {Worker, i})
+      end)
 
-    Supervisor.init(children, strategy: :one_for_one)
+    Supervisor.init(children,
+      strategy: :one_for_one,
+      max_restarts: @max_restarts,
+      max_seconds: @max_seconds
+    )
   end
 end

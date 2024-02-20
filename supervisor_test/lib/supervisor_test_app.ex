@@ -5,7 +5,7 @@ defmodule SupervisorTestApp do
   @impl true
   def start(_type, _args) do
     children = [
-      {DataEmitter, {}},
+      DataEmitter,
       {WorkerPool, 10}
     ]
 

@@ -2,34 +2,34 @@
 
 Test how supervisors stablize code in case of bad states.
 
-`DataEmitter` - single process that calls random `Worker` each `@interval`.
+`RequestEmitter` - single process that calls random `Worker` each `@interval`.
 Each process is called with number 0-999
 
-`Worker` - responds to DataEmitter. Each number NUM is processed by following logic:
-- NUM in [100, 200, ...] - introduce corrupted state (an_error - random number 0-99).
-- NUM rem an_error == 0 - crash
-- work with `Base`, :ok
+`Worker` - responds to RequestEmitter. Each number NUM is processed by following logic:
+- NUM in [100, 200, ...] - introduce corrupted state (random number 10-20).
+- if rem(NUM, state) == 0 - crash
 
-`Base` - global process, that is called by each `Worker`. From time to time
-it can go into corrupted process. In this case any attempt to work with base
-will return {:error, :corrupted_state}
+Supervisors should restart crushed workers.
 
-Supervisors should restart
+### How to play with it:
 
-## Installation
+In default state it should run any time with crashes from time to time
+without significant impact. In very rare cases it can happen that workers
+restart more then 3 times during 5 seconds and supervisor restart everything
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `supervisor_test` to your list of dependencies in `mix.exs`:
+To increase chances and even hit moment when whole application is restarted do
+some  of following:
+- decrease `@interval` in  `RequestEmitter` to emit requests more frequently
+- increase `@max_interval` in `WorkerPool` so supervisor will wait longer for
+restarts series
+- decrease `@max_restarts` in `WorkerPool` so less restart will be needed to cause problem
+- decrease `@bad_state_divider` in `Worker` so bad state is introduced more often
+- decrease `@bad_state_range` in `WorkerPool` so bad state will be more harmful
 
-```elixir
-def deps do
-  [
-    {:supervisor_test, "~> 0.1.0"}
-  ]
-end
-```
+### Start
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/supervisor_test>.
+Use `iex -S mix` to start application with console
 
+### How to test
+
+Use `mix test --no-start` to start unit tests.

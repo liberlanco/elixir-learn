@@ -1,22 +1,50 @@
-defmodule DataEmitter do
-  @moduledoc false
+defmodule RequestEmitter do
+  @moduledoc """
+  Emulatore of client requests.
+
+  Each request is a random number in `@request_num_range`.
+
+  Each `@interval` milliseconds `RequestEmitter` sends random request to
+  random worker.
+
+  ### Configuration
+
+  @interval - how often to send requests
+
+  @raquest_num_range - range for outgoing request number
+
+  """
   use GenServer
+  @name {:global, __MODULE__}
 
   require Logger
 
   @interval 100
-  @name {:global, __MODULE__}
+  @request_num_range 1..999
 
   # Client
 
+  @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(_) do
     GenServer.start_link(__MODULE__, {}, name: @name)
   end
 
+  @doc """
+  Registers given `pid` in internal list of pids.
+
+  Returns :ok in any case, even if pid already registered
+  """
+  @spec register(pid()) :: :ok
   def register(pid) when is_pid(pid) do
     GenServer.cast(@name, {:register, pid})
   end
 
+  @doc """
+  Unregisters given `pid`
+
+  Returns :ok in any case, even if pid is already unregistered
+  """
+  @spec unregister(pid()) :: :ok
   def unregister(pid) when is_pid(pid) do
     GenServer.cast(@name, {:unregister, pid})
   end
@@ -46,9 +74,8 @@ defmodule DataEmitter do
   def handle_info(:emit, state) do
     case PidsList.random_pid(state.list) do
       {:ok, pid} ->
-        # Not start_link because don't want to die, if task
-        # failed to do Worker.call for any reason
-        Task.start(fn -> emit(pid) end)
+        # Should not die because of any problems in this task
+        Task.Supervisor.start_child(RequestTasksSup, fn -> emit(pid) end)
         {:noreply, state}
 
       {:error, :empty_list} ->
@@ -62,9 +89,11 @@ defmodule DataEmitter do
     {:noreply, %{state | list: PidsList.remove(state.list, pid)}}
   end
 
+  # Emit request body. Isolated in Task process
   defp emit(pid) do
-    num = :rand.uniform(999)
-    # Logger.debug("send #{num} to #{inspect(pid)} from #{inspect(self())}")
+    first..last = @request_num_range
+    num = :rand.uniform(last - first) + first
+    Logger.debug("send #{num} to #{inspect(pid)} from #{inspect(self())}")
     Worker.call(pid, num)
   end
 end

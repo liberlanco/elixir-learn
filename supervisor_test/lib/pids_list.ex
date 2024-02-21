@@ -1,5 +1,5 @@
 defmodule PidsList do
-  @doc """
+  @moduledoc """
   Structure to hide details about how pids are stored, managed
   and how random pid is generated
 
@@ -28,35 +28,36 @@ defmodule PidsList do
           pids: %{pid => boolean}
         }
 
-  @spec new() :: PidsList.t()
   @doc """
   Create new pids list
   """
+  @spec new() :: PidsList.t()
   def new() do
     %__MODULE__{}
   end
 
-  @spec add(PidsList.t(), pid()) :: PidsList.t()
   @doc """
   Add new pid to pid list, it should be silent, if pid already exists there
   """
+  @spec add(PidsList.t(), pid()) :: PidsList.t()
   def add(%__MODULE__{} = list, pid) do
     %__MODULE__{list | pids: Map.put(list.pids, pid, true)}
   end
 
-  @spec remove(PidsList.t(), pid()) :: PidsList.t()
   @doc """
   Remove pid from pid list. Do nothing if pid is missing
   """
+  @spec remove(PidsList.t(), pid()) :: PidsList.t()
   def remove(%__MODULE__{} = list, pid) do
     %__MODULE__{list | pids: Map.delete(list.pids, pid)}
   end
 
-  @spec random_pid(PidsList.t()) :: {:error, :empty_list} | {:ok, pid()}
   @doc """
   Return random pid from the list
   """
-  def random_pid(%__MODULE__{pids: pids}) when map_size(pids) == 0, do: {:error, :empty_list}
+  @spec random_pid(PidsList.t()) :: {:error, :empty_list} | {:ok, pid()}
+  def random_pid(%__MODULE__{pids: pids}) when map_size(pids) == 0,
+    do: {:error, :empty_list}
 
   def random_pid(%__MODULE__{pids: pids}) do
     {pid, _} = Enum.random(pids)

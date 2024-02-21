@@ -25,7 +25,7 @@ defmodule PidsList do
   defstruct pids: %{}
 
   @type t :: %__MODULE__{
-          pids: %{pid => boolean}
+          pids: %{pid() => boolean()}
         }
 
   @doc """

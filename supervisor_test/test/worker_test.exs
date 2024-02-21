@@ -1,5 +1,4 @@
 defmodule WorkerTest do
-  alias ExUnit.DocTest.Error
   use ExUnit.Case
 
   test "Worker normal workflow" do
@@ -30,6 +29,6 @@ defmodule WorkerTest do
       Enum.map(1..100, fn num -> Worker.call(pid, num) end)
     end)
 
-    assert_receive {:DOWN, ref, :process, pid, _reason}, 1000
+    assert_receive {:DOWN, ^ref, :process, ^pid, _reason}, 1000
   end
 end

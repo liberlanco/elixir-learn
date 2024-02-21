@@ -1,4 +1,10 @@
 defmodule WorkerPool do
+  @moduledoc """
+  Workers supervisor.
+
+  ### Configuration
+  @max_restarts - How many restarts (any child?) is allowed during @max_seconds
+  """
   use Supervisor
 
   @max_restarts 3

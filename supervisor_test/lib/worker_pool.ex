@@ -12,15 +12,14 @@ defmodule WorkerPool do
   @max_restarts 3
   @max_seconds 5
 
-  def start_link(opts) do
-    IO.puts(inspect(opts))
-    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(count) do
+    Supervisor.start_link(__MODULE__, count, name: __MODULE__)
   end
 
   @impl true
-  def init(num) do
+  def init(count) do
     children =
-      1..num
+      1..count
       |> Enum.map(fn i ->
         Supervisor.child_spec({Worker, {}}, id: {Worker, i})
       end)

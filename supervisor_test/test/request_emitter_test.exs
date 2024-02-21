@@ -15,7 +15,7 @@ defmodule RequestEmitterTest do
     RequestEmitter.register(self())
 
     # Wanted to test that RequestEmitter really sends events
-    # but looks like this architecture ended i level hack in tests,
+    # but looks like this architecture ended in low-level hack in tests,
     # Probably, I should use handle_info instead of handle_call if
     # I want to test such interop in future, but not sure.
     assert_receive {:"$gen_call", _pid, {:num, _}}, 1000

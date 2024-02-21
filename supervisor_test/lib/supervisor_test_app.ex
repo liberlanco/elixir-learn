@@ -14,7 +14,6 @@ defmodule SupervisorTestApp do
   @workers_count 10
 
   @impl true
-  @spec start(any(), any()) :: {:error, any()} | {:ok, pid()}
   def start(_type, _args) do
     children = [
       {Task.Supervisor, name: RequestTasksSup},

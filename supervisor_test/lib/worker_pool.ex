@@ -4,6 +4,8 @@ defmodule WorkerPool do
 
   ### Configuration
   @max_restarts - How many restarts (any child?) is allowed during @max_seconds
+
+  @max_seconds - How long to calculate restarts
   """
   use Supervisor
 

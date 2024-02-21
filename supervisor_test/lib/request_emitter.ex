@@ -1,6 +1,6 @@
 defmodule RequestEmitter do
   @moduledoc """
-  Emulatore of client requests.
+  Emulate client's requests.
 
   Each request is a random number in `@request_num_range`.
 
@@ -11,7 +11,7 @@ defmodule RequestEmitter do
 
   @interval - how often to send requests
 
-  @raquest_num_range - range for outgoing request number
+  @request_num_range - range for outgoing request number
 
   """
   use GenServer
@@ -74,7 +74,6 @@ defmodule RequestEmitter do
   def handle_info(:emit, state) do
     case PidsList.random_pid(state.list) do
       {:ok, pid} ->
-        # Should not die because of any problems in this task
         Task.Supervisor.start_child(RequestTasksSup, fn -> emit(pid) end)
         {:noreply, state}
 
@@ -89,7 +88,7 @@ defmodule RequestEmitter do
     {:noreply, %{state | list: PidsList.remove(state.list, pid)}}
   end
 
-  # Emit request body. Isolated in Task process
+  # Emits request. Isolated in Task process
   defp emit(pid) do
     first..last = @request_num_range
     num = :rand.uniform(last - first) + first

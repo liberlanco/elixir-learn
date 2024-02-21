@@ -25,7 +25,6 @@ defmodule Worker do
     GenServer.start(__MODULE__, {})
   end
 
-  @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(_) do
     GenServer.start_link(__MODULE__, {})
   end
@@ -50,19 +49,19 @@ defmodule Worker do
 
   @impl true
   def handle_call({:num, num}, _from, state) do
-    {:ok, ans, new_state} = process(num, state)
+    {ans, new_state} = process(num, state)
     {:reply, {:ok, ans}, new_state}
   end
 
   # Clause to introduce bad state
   defp process(num, _) when rem(num, @bad_state_divider) == 0 do
     first..last = @bad_state_range
-    {:ok, 1, :rand.uniform(last - first) + first}
+    {1, :rand.uniform(last - first) + first}
   end
 
   # Normal workflow
   defp process(num, divider) do
     reminder = rem(trunc(num), trunc(divider))
-    {:ok, num / reminder, divider}
+    {num / reminder, divider}
   end
 end

@@ -11,12 +11,13 @@ defmodule SupervisorTestApp do
   """
   use Application
 
-  @workers_count 10
+  @workers_count Application.compile_env!(:supervisor_test_app, :workers_count)
 
   @impl true
   def start(_type, _args) do
     children = [
       {Task.Supervisor, name: RequestTasksSup},
+      {Registry, name: WorkerRegistry, keys: :duplicate},
       RequestEmitter,
       {WorkerPool, @workers_count}
     ]

@@ -1,32 +1,39 @@
 defmodule WorkerTest do
   use ExUnit.Case
 
-  test "Worker normal workflow" do
-    {:ok, pid} = Worker.start_link({})
-    {:ok, response} = Worker.call(pid, 13)
-    assert trunc(response) in 1..1000
+  @fail_range Application.compile_env!(:supervisor_test_app, :worker_bad_state_range)
+  @fail_num Application.compile_env!(:supervisor_test_app, :worker_bad_state_divider)
+  @resp_range Application.compile_env!(:supervisor_test_app, :request_num_range)
+
+  # prime number, doesn't have dividers
+  @good_num 13
+
+  # Backup and restore Logger.level, since it's manipulated
+  setup do
+    current_logger_level = Logger.level()
+
+    on_exit(fn ->
+      Logger.configure(level: current_logger_level)
+    end)
   end
 
-  # Don't like this test, becaue it generates
-  # error crash dumps. Also, it's not good
-  # to hide those crash dumps or to increase logger level
-  # to :alert, because it can hide other important
-  # log messages.
-  # Alternative is to make Worker.process public function,
-  # but this is not good too.
-  # May be I just should not test those process crash scenarious
-  # because it should not be tested expected way in normal app.
+  test "Worker normal workflow" do
+    {:ok, pid} = Worker.start_link([])
+    {:ok, response} = Worker.call(pid, @good_num)
+    assert trunc(response) in @resp_range
+  end
+
   test "Worker crash workflow" do
-    {:ok, pid} = Worker.start({})
+    {:ok, pid} = Worker.start([])
     ref = Process.monitor(pid)
 
-    # Cause failure state
-    {:ok, response} = Worker.call(pid, 100)
+    {:ok, response} = Worker.call(pid, @fail_num)
     assert response == 1
 
-    # Spam with numbers, should cause failure
+    Logger.configure(level: :alert)
+    # Spam with numbers in fail state range, should cause failure
     Task.start(fn ->
-      Enum.map(1..100, fn num -> Worker.call(pid, num) end)
+      Enum.map(@fail_range, fn num -> Worker.call(pid, num) end)
     end)
 
     assert_receive {:DOWN, ^ref, :process, ^pid, _reason}, 1000

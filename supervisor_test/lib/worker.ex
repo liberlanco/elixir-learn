@@ -11,22 +11,24 @@ defmodule Worker do
 
   ### Configuration
 
-  @bad_state_divier - bad state is intruduced when
+  worker_bad_state_divier - bad state is intruduced when
   incoming NUM is divided by this number
 
-  @bad_state_range - this range defines bad state limits
+  worker_bad_state_range - this range defines bad state limits
   """
   use GenServer
 
-  @bad_state_divider 50
-  @bad_state_range 10..30
+  @bad_state_divider Application.compile_env!(:supervisor_test_app, :worker_bad_state_divider)
+  @bad_state_range Application.compile_env!(:supervisor_test_app, :worker_bad_state_range)
 
-  def start(_) do
-    GenServer.start(__MODULE__, {})
+  def start(options) do
+    init_arg = parse_options(options)
+    GenServer.start(__MODULE__, init_arg)
   end
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, {})
+  def start_link(options) do
+    init_arg = parse_options(options)
+    GenServer.start_link(__MODULE__, init_arg)
   end
 
   @doc """
@@ -36,19 +38,19 @@ defmodule Worker do
   """
   @spec call(pid(), integer()) :: :ok
   def call(pid, num) when is_integer(num) do
-    GenServer.call(pid, {:num, num})
+    GenServer.call(pid, {:call, num})
   end
 
   # Server (callbacks)
 
   @impl true
-  def init(_) do
-    :ok = RequestEmitter.register(self())
-    {:ok, 1000}
+  def init({state}) do
+    Registry.register(WorkerRegistry, :worker, [])
+    {:ok, state}
   end
 
   @impl true
-  def handle_call({:num, num}, _from, state) do
+  def handle_call({:call, num}, _from, state) do
     {ans, new_state} = process(num, state)
     {:reply, {:ok, ans}, new_state}
   end
@@ -63,5 +65,15 @@ defmodule Worker do
   defp process(num, divider) do
     reminder = rem(trunc(num), trunc(divider))
     {num / reminder, divider}
+  end
+
+  defp parse_options(options) do
+    state =
+      case Keyword.get(options, :state, 1000) do
+        n when is_integer(n) and n > 0 -> n
+        _ -> raise ArgumentError, "expected positive integer as state"
+      end
+
+    {state}
   end
 end
